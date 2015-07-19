@@ -1,0 +1,119 @@
+---
+title: "Automatic vs. Manual Transmission Cars"
+author: "Alex"
+output:
+  pdf_document:
+    fig_caption: yes
+  html_document: default
+---
+
+## Executive Summary
+This project investigates the `mtcars` dataset which comprises fuel consumption as well as 10 aspects of automobile design and performance for 32 automobiles. The objective is to explore the relationship between these variables and miles per gallon (MPG) to determine whether manual or automatic transmission provides better mileage and quantify the difference in MPG.
+
+``` {r, echo=FALSE, results='hide', warning=FALSE}
+library(car)
+data(mtcars)
+str(mtcars)
+
+carsDataset <- mtcars
+carsDataset$cyl <- factor(carsDataset$cyl)
+carsDataset$vs <- factor(carsDataset$vs, labels = c("V", "S"))
+carsDataset$am <- factor(carsDataset$am, labels = c("Automatic", "Manual"))
+carsDataset$gear <- factor(carsDataset$gear)
+carsDataset$carb <- factor(carsDataset$carb)
+```
+
+## Exploratory Data Analysis
+The effect of transmission type on MPG was first analysed through a boxplot (Appendix A: Figure 1). This boxplot illustrates that cars with manual transmissions have a higher MPG.
+
+A Welch Two Sample t-test also indicates that the mean MPG of cars with manual transmission (`r round(t.test(mpg ~ am, data = carsDataset)$estimate["mean in group Manual"],1)`mpg) is higher than that of cars with automatic transmission (`r round(t.test(mpg ~ am, data = carsDataset)$estimate["mean in group Automatic"],1)`mpg). [*View Code in Appendix B*]
+
+Next, the effect of the 10 variables, `cyl`, `disp`, `hp`, `drat`, `wt`, `qsec`, `vs`, `am`, `gear` and `carb` on MPG were explored through a pairwise scatterplot (Appendix A: Figure 2). This pairwise scatterplot shows that the variables `cyl`, `disp`, `hp`, `drat`, `wt`, `vs` and `am` have a strong correlation with MPG.
+
+## Regression Modelling
+
+### Model 1
+The first model assumes that all variables have an impact on MPG. 
+
+``` {r, results='hide'}
+model1 <- lm(mpg ~ ., data = carsDataset)
+summary(model1)
+```
+
+The adjusted R-squared value of this model is `r summary(model1)$adj.r.squared`, indicating that the model only explains approximately `r round(summary(model1)$adj.r.squared * 100)`% of the variability of the data around its mean.
+
+### Model 2
+The first model was refined by applying the stepwise regression search algorithm. This was accomplished through the use of the R function `step()` to perform variable selection. As such, only useful variables that impacted MPG significantly were selected as part of the model solutioning.
+
+``` {r, results='hide'}
+model2 <- step(model1, direction = "both")
+summary(model2)
+```
+
+The refined model narrows down the important variables to `cyl`, `hp`, `wt` and `am` as having the greatest impact on MPG. This resulted in the model achieving an adjusted R-squared value of `r summary(model2)$adj.r.squared` (`r round(summary(model2)$adj.r.squared * 100)`%). [*View Results in Appendix B*]
+
+An ANOVA of Model 2 further shows that `cyl` and `wt` are the two most important variables that have the greatest significance on MPG.
+
+``` {r}
+anova(model2)
+```
+
+## Coefficient Interpretation
+
+``` {r, echo=FALSE}
+coef(model2)
+```
+
+The coefficients of Model 2 tell us that:
+
+\begin{itemize}
+\item An increase in the number of cylinders from 4 to 6 (cyl6) results in the car's mileage decreasing by approximately 3.0mpg.
+\item An increase in the number of cylinders from 4 to 8 (cyl8) results in the car's mileage decreasing by approximately 2.2mpg.
+\item For every increase in gross horsepower (hp), the car's mileage decreases by approximately 0.03mpg.
+\item For every 1000lbs increase in weight (wt), the car's mileage decreases by approximately 2.5mpg.
+\item A car with manual transmission (amManual) achieves better mileage as its mileage increases by approximately 1.8mpg as compared to a car with automatic transmission.
+\end{itemize}
+
+## Residuals and Diagnostics
+The residuals was examined through a residuals plot (Appendix A: Figure 3) and no anormalies were detected.
+
+Diagnostics plots in Appendix A: Figure 4 reinforce these findings. The Residuals vs. Fitted diagnostic plot on the top-left illustrates randomly scattered points which verifies the independence condition, and the Normal Q-Q plot on the top-right shows that the residuals are normally distributed.
+
+## Conclusion
+Through the regression analysis, it can be ascertained that manual transmission is better for MPG. A car with manual transmission achieves better mileage as its mileage increases by approximately 1.8mpg as compared to a car with automatic transmission.
+
+\pagebreak
+
+# Appendix A: Plots
+
+``` {r, echo=FALSE, fig.cap="Exploratory Data Analysis Boxplot", fig.height=4, fig.width=4}
+boxplot(mpg ~ am, data = carsDataset, col = c("#3498db", "#9b59b6"), xlab = "Transmission Type", ylab = "Miles Per Gallon (MPG)")
+```
+
+``` {r, echo=FALSE, fig.cap="Exploratory Data Analysis Pairwise Scatterplot", fig.height=8, fig.width=8}
+pairs(mpg ~ ., data = carsDataset)
+```
+
+``` {r, echo=FALSE, fig.cap="Residual Plots", fig.height=8, fig.width=8}
+residualPlots(model2, tests = FALSE)
+```
+
+```{r, echo=FALSE, fig.cap="Diagnostic Plots", fig.height=6, fig.width=6}
+par(mfrow = c(2,2))
+plot(model2)
+```
+
+\pagebreak
+
+# Appendix B: Codes
+
+``` {r}
+t.test(mpg ~ am, data = carsDataset)
+```
+
+``` {r}
+summary(model2)
+```
+
+## Environment
+All analysis was performed in an R Markdown (Rmd) document using RStudio 0.98.1091. It can be downloaded from this [link](https://github.com/outrigger/RegressionModels).
